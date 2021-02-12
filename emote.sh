@@ -33,17 +33,19 @@ if [ ! -d emotes ]; then
             while read line; do
                 name=$(rm_tr_quotes $(echo $line | jq '.name'))
                 emote_id=$(rm_tr_quotes $(echo $line | jq '.id'))
-                printf "Downloading emote %s...\n" $name
                 url="https://cdn.discordapp.com/emojis/$emote_id"
                 filetype=$(curl -s -I $url | grep "^content-type: " | awk '{ print $2 }' | sed 's/.*\///g')
                 filename=$(echo "$dir/emotes/$name.$filetype" | sed 's/\r//g')
-                wget -q -O $filename $url
-                convert -resize "48x48" $filename $filename
-                
-                [ -s $filename] || rm $filename
+                if [ ! -f $filename]; then
+                    printf "Downloading %s...\n" $name
+                    wget -q -O $filename $url
+                    convert -resize "48x48" $filename $filename
+                    [ -s $filename] || rm $filename
+                else
+                    printf "Skipping %s...\n" $name
+                fi
             done
     done
-    
 fi;
 
 selected=$(for img in $dir/emotes/*; do
@@ -54,12 +56,11 @@ selected=$(for img in $dir/emotes/*; do
            
 if [ "$selected" ]; then
     selected=$(echo $selected | cut -d ":" -f 2)
-    echo $selected
-    real_fn=$(find emotes -type f -name "$selected.*" | head -1)
+    real_fn=$(find $dir/emotes -type f -name "$selected.*" | head -1)
     mime_type=$(file -b --mime-type "$real_fn")
 
-    if [[ "$mime_type" == image* ]]; then
-        xclip -se c -t $mime_type -i $real_fn 
+    if [[ "$mime_type" == image/png ]]; then
+        xclip -se c -t image/png -i $real_fn 
         WID=$(xdotool search --class --classname "Discord" | head -1)
         if [ "$WID" ]; then
             xdotool windowactivate $WID
@@ -67,7 +68,10 @@ if [ "$selected" ]; then
             xdotool key KP_Enter
         else
             echo "You do not have discord open"
+            exit 1
         fi
+    else
+        dragon $real_fn --and-exit # temporary fix since gifs aren't getting copied to the clipboard
     fi
 fi
 
