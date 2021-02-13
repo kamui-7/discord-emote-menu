@@ -48,9 +48,8 @@ if [ ! -d $emote_col ]; then
                     wget -q -O $full_fn $url
                     convert -resize "48x48" $full_fn $full_fn
                     # create thumbnail to display in rofi
-                    if [  ${full_fn##*.} = "gif" ]; then # not sure why it wouldn't let me compare filetype
-                        convert $full_fn -delete 1--1 $thumbnail_path/$name.png
-                    fi
+                    # not sure why it wouldn't let me compare filetype
+                    [  ${full_fn##*.} = "gif" ] && convert $full_fn -delete 1--1 $thumbnail_path/$name.png
                     [ -s $full_fn ] || rm $full_fn
                     echo "$name $filename 0" >> $data_file
                 else
@@ -76,9 +75,8 @@ selected=$(sort -k 3 -r $data_file | \
 
 if [ "$selected" ]; then
     selected=$(echo $selected | cut -d ":" -f 2)
-    real_fn=$dir/$(grep "^$selected " $data_path | awk '{print $2}')
+    real_fn=$dir/$(grep "^$selected " $data_file | awk '{print $2}')
     mime_type=$(file -b --mime-type "$real_fn")
-
     # increments usage counter
     sed -E -i 's/(^'"$selected"') (.*) ([0-9]*)/echo "\1 \2 $((\3+1))"/ge' emote_data
 
