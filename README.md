@@ -12,7 +12,7 @@ This script depends on a few other utilities:
 
 - `jq` - Parses json response from Discord API
 - `imagemagick` - For resizing emotes to regular size
-- `rofi` - For displaying emote menu (dmenu support will come soon)
+- `rofi` - For displaying the emote menu
 - `xdotool` - Sending input to windows
 - `xclip` - Clipboard management
 - `dragon` - As of now, since gifs aren't getting copied to the clipboard, dragon is used as a temporary solution to drag and drop the gif

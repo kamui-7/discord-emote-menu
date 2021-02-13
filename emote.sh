@@ -95,11 +95,11 @@ if [ "$selected" ]; then
     real_fn=$dir/$(grep "^$selected " $data_file | awk '{print $2}')
     mime_type=$(file -b --mime-type "$real_fn")
     # increments usage counter
-    sed -E -i 's/(^'"$selected"') (.*) ([0-9]*)/echo "\1 \2 $((\3+1))"/ge' emote_data # FIXME: full path pls
+    sed -E -i 's/(^'"$selected"') (.*) ([0-9]*)/echo "\1 \2 $((\3+1))"/ge' $data_file
 
     if [[ "$mime_type" == image/png ]]; then
         xclip -se c -t image/png -i $real_fn 
-        WID=$(xdotool search --class --classname "Discord" | head -1)
+        WID=$(xdotool search --class --onlyvisible --maxdepth 1 --limit 1 "Discord")
         if [ "$WID" ]; then
             xdotool windowactivate $WID
             xdotool key ctrl+v
