@@ -8,16 +8,14 @@ function fetch_data () {
 }
 
 function rm_tr_quotes () {
-    temp="${$1%\"}"
-    temp="${temp#\"}"
-    echo "$temp"
+    echo "$1" | sed -e 's/^"//' -e 's/"$//'
 }
 
 if [ ! -d emotes ]; then
     echo -n "Enter your discord authentication token: "
     read -s token
     
-    if [[ $(fetchData "/users/@me" | jq '.message') = '"401: Unauthorized"' ]]; then
+    if [[ $(fetch_data "/users/@me" | jq '.message') = '"401: Unauthorized"' ]]; then
         echo -e "\nIncorrect token"
         exit 1
     fi
@@ -25,38 +23,39 @@ if [ ! -d emotes ]; then
     echo -e "\nStarting to download emotes..."
 
     mkdir -p emotes
-    servers=$(fetchData "/users/@me/guilds" | jq '.[] | .id')
+    servers=$(fetch_data "/users/@me/guilds" | jq '.[] | .id')
 
     for id in $servers; do
         id=$(rm_tr_quotes $id)
-        fetchData "/guilds/$id/emojis" | jq -c '.[]'|
+        fetch_data "/guilds/$id/emojis" | jq -c '.[]'|
             while read line; do
                 name=$(rm_tr_quotes $(echo $line | jq '.name'))
                 emote_id=$(rm_tr_quotes $(echo $line | jq '.id'))
                 url="https://cdn.discordapp.com/emojis/$emote_id"
                 filetype=$(curl -s -I $url | grep "^content-type: " | awk '{ print $2 }' | sed 's/.*\///g')
-                filename=$(echo "$dir/emotes/$name.$filetype" | sed 's/\r//g')
-                if [ ! -f $filename]; then
-                    printf "Downloading %s...\n" $name
+                filename=$(echo "emotes/$name.$filetype" | sed 's/\r//g')
+                if [ ! -f $filename ]; then
+                    echo "Downloading $name..."
                     wget -q -O $filename $url
                     convert -resize "48x48" $filename $filename
-                    [ -s $filename] || rm $filename
+                    [ -s $filename ] || rm $filename
+                    echo "$name \"$filename\"" >> emote_data
                 else
-                    printf "Skipping %s...\n" $name
+                    echo "Skipping $name...\n"
                 fi
             done
     done
 fi;
 
-selected=$(for img in $dir/emotes/*; do
-               bn=$(basename -- "$img")
-               fn=":${bn%%.*}:"
-               echo -e "$fn"
-           done | rofi -dmenu)
-           
+selected=$(while read entry; do
+    name=$(echo $entry | awk '{print $1}')
+    name=":${name%%.*}:"
+    echo -e "$name"
+done <$dir/emote_data | rofi -dmenu -i -p "Emote:" -no-custom -sort)
+
 if [ "$selected" ]; then
     selected=$(echo $selected | cut -d ":" -f 2)
-    real_fn=$(find $dir/emotes -type f -name "$selected.*" | head -1)
+    real_fn=$dir/$(rm_tr_quotes $(grep "^$selected " $dir/emote_data | awk '{print $2}'))
     mime_type=$(file -b --mime-type "$real_fn")
 
     if [[ "$mime_type" == image/png ]]; then
@@ -74,4 +73,3 @@ if [ "$selected" ]; then
         dragon $real_fn --and-exit # temporary fix since gifs aren't getting copied to the clipboard
     fi
 fi
-
