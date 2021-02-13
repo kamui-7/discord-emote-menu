@@ -1,4 +1,5 @@
 #!/bin/bash
+
 base_url="https://discord.com/api/v8"
 dir=$(dirname "$0")
 
@@ -58,7 +59,8 @@ if [ "$selected" ]; then
     real_fn=$dir/$(rm_tr_quotes $(grep "^$selected " $dir/emote_data | awk '{print $2}'))
     mime_type=$(file -b --mime-type "$real_fn")
 
-    sed -E -i 's/(^'"$selected"') (".*") ([0-9]*)/echo "\1 \"\2\" $((\3+1))"/ge' emote_data
+    # increments usage counter
+    sed -E -i 's/(^'"$selected"') (".*") ([0-9]*)/echo "\1 \"\2\" $((\3+1))"/ge' $dir/emote_data
 
     if [[ "$mime_type" == image/png ]]; then
         xclip -se c -t image/png -i $real_fn 
