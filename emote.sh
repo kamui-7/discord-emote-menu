@@ -39,7 +39,7 @@ if [ ! -d emotes ]; then
                     wget -q -O $filename $url
                     convert -resize "48x48" $filename $filename
                     [ -s $filename ] || rm $filename
-                    echo "$name \"$filename\"" >> emote_data
+                    echo "$name \"$filename\" 0" >> emote_data
                 else
                     echo "Skipping $name...\n"
                 fi
@@ -47,16 +47,18 @@ if [ ! -d emotes ]; then
     done
 fi;
 
-selected=$(while read entry; do
-    name=$(echo $entry | awk '{print $1}')
-    name=":${name%%.*}:"
-    echo -e "$name"
-done <$dir/emote_data | rofi -dmenu -i -p "Emote:" -no-custom -sort)
+selected=$(sort -k 3 -r $dir/emote_data | awk '{ print $1 }' | \
+    while read entry; do
+        name=":${entry%%.*}:"
+        echo $name
+    done | rofi -dmenu -i -p "Emote:" -no-custom -sort)
 
 if [ "$selected" ]; then
     selected=$(echo $selected | cut -d ":" -f 2)
     real_fn=$dir/$(rm_tr_quotes $(grep "^$selected " $dir/emote_data | awk '{print $2}'))
     mime_type=$(file -b --mime-type "$real_fn")
+
+    sed -E -i 's/(^'"$selected"') (".*") ([0-9]*)/echo "\1 \"\2\" $((\3+1))"/ge' emote_data
 
     if [[ "$mime_type" == image/png ]]; then
         xclip -se c -t image/png -i $real_fn 
