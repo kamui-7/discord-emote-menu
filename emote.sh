@@ -2,6 +2,9 @@
 
 base_url="https://discord.com/api/v8"
 dir=$(dirname "$0")
+data_file=$dir/emote_data
+emote_col=$dir/emotes
+thumbnail_path=$emote_col/gif_thumbnails
 
 function fetch_data () {
     curl --silent -H "Content-Type: application/json" -H "Authorization: $token" \
@@ -12,7 +15,7 @@ function rm_tr_quotes () {
     echo "$1" | sed -e 's/^"//' -e 's/"$//'
 }
 
-if [ ! -d emotes ]; then
+if [ ! -d $emote_col ]; then
     echo -n "Enter your discord authentication token: "
     read -s token
     
@@ -23,7 +26,11 @@ if [ ! -d emotes ]; then
 
     echo -e "\nStarting to download emotes..."
 
-    mkdir -p emotes
+    mkdir -p $thumbnail_path
+    if [ -f $data_file ]; then
+        truncate -s 0 $data_file
+    fi
+
     servers=$(fetch_data "/users/@me/guilds" | jq '.[] | .id')
 
     for id in $servers; do
@@ -35,30 +42,41 @@ if [ ! -d emotes ]; then
                 url="https://cdn.discordapp.com/emojis/$emote_id"
                 filetype=$(curl -s -I $url | grep "^content-type: " | awk '{ print $2 }' | sed 's/.*\///g')
                 filename=$(echo "emotes/$name.$filetype" | sed 's/\r//g')
+                full_fn=$dir/$filename
                 if [ ! -f $filename ]; then
                     echo "Downloading $name..."
-                    wget -q -O $filename $url
-                    convert -resize "48x48" $filename $filename
-                    [ -s $filename ] || rm $filename
-                    echo "$name $filename 0" >> emote_data
+                    wget -q -O $full_fn $url
+                    convert -resize "48x48" $full_fn $full_fn
+                    # create thumbnail to display in rofi
+                    if [  ${full_fn##*.} = "gif" ]; then # not sure why it wouldn't let me compare filetype
+                        convert $full_fn -delete 1--1 $thumbnail_path/$name.png
+                    fi
+                    [ -s $full_fn ] || rm $full_fn
+                    echo "$name $filename 0" >> $data_file
                 else
-                    echo "Skipping $name...\n"
+                    echo "Skipping $name..."
                 fi
             done
     done
 fi;
 
-selected=$(sort -k 3 -r $dir/emote_data | \
+selected=$(sort -k 3 -r $data_file | \
     while read entry; do
-        name=$(echo $entry | awk '{print $1}')
-        name=":${name%%.*}:"
+        origname=$(echo $entry | awk '{print $1}')
+        name=":${origname%%.*}:"
         img=$(echo $entry | awk '{print $2}')
-        echo -e "$name\0icon\x1f$dir/$img"
+        [ ${img##*.} = "gif" ] && img=emotes/gif_thumbnails/$origname.png
+        if [ $PWD != $HOME ] && [ $PWD != $dir ]; then
+            img=$(realpath $dir/$img)
+        else 
+            img=$dir/$img
+        fi
+        echo -e "$name\0icon\x1f$img"
     done | rofi -dmenu -i -p "Emote:" -no-custom -sort -show-icons)
 
 if [ "$selected" ]; then
     selected=$(echo $selected | cut -d ":" -f 2)
-    real_fn=$dir/$(grep "^$selected " $dir/emote_data | awk '{print $2}')
+    real_fn=$dir/$(grep "^$selected " $data_path | awk '{print $2}')
     mime_type=$(file -b --mime-type "$real_fn")
 
     # increments usage counter
