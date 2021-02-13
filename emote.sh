@@ -38,13 +38,13 @@ while [[ $# -gt 0 ]]; do
     case $key in
         -c|--rofi-config)
             [ -z "$2" ] && invalid_option
-            rofi_config="$2"
+            rofi_config=$(rm_tr_quotes "$2")
             shift
             shift
             ;;
         -w|--window-class)
             [ -z "$2" ] && invalid_option
-            window_class="$2"
+            window_class=$(rm_tr_quotes "$2")
             shift
             shift
             ;;
