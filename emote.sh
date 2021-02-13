@@ -6,6 +6,17 @@ data_file=$dir/emote_data
 emote_col=$dir/emotes
 thumbnail_path=$emote_col/gif_thumbnails
 
+while [[ $# -gt 0 ]]; do
+    key="$1"
+    case $key in
+        -c|--rofi-config)
+        rofi_config="$2"
+        shift # past argument
+        shift # past value
+    esac
+done
+
+
 function fetch_data () {
     curl --silent -H "Content-Type: application/json" -H "Authorization: $token" \
         "$base_url$1"
@@ -59,6 +70,12 @@ if [ ! -d $emote_col ]; then
     done
 fi;
 
+rofi_cmd=(rofi -dmenu -i -p "Emote:" -no-custom -sort -show-icons)
+
+if [ ! -z ${rofi_config+x} ]; then
+    rofi_cmd+=(-config "$rofi_config")
+fi
+
 selected=$(sort -k 3 -r $data_file | \
     while read entry; do
         origname=$(echo $entry | awk '{print $1}')
@@ -71,14 +88,14 @@ selected=$(sort -k 3 -r $data_file | \
             img=$dir/$img
         fi
         echo -e "$name\0icon\x1f$img"
-    done | rofi -dmenu -i -p "Emote:" -no-custom -sort -show-icons)
+    done | ${rofi_cmd[@]})
 
 if [ "$selected" ]; then
     selected=$(echo $selected | cut -d ":" -f 2)
     real_fn=$dir/$(grep "^$selected " $data_file | awk '{print $2}')
     mime_type=$(file -b --mime-type "$real_fn")
     # increments usage counter
-    sed -E -i 's/(^'"$selected"') (.*) ([0-9]*)/echo "\1 \2 $((\3+1))"/ge' emote_data
+    sed -E -i 's/(^'"$selected"') (.*) ([0-9]*)/echo "\1 \2 $((\3+1))"/ge' emote_data # FIXME: full path pls
 
     if [[ "$mime_type" == image/png ]]; then
         xclip -se c -t image/png -i $real_fn 
