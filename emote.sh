@@ -6,13 +6,31 @@ data_file=$dir/emote_data
 emote_col=$dir/emotes
 thumbnail_path=$emote_col/gif_thumbnails
 
+function show_help () {
+    echo "Usage: $(basename "$0") [OPTION...]"
+    echo -e "A script to open a discord emote menu\n"
+    echo "Options:"
+    echo -e "-c, --rofi-config\tSpecify a custom config file for the rofi menu"
+    echo -e "-u, --update-emotes\tDownload new emotes"
+    echo -e "-h, --help\t\tDisplay this help menu\n"
+    exit 0
+}
+
 while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in
         -c|--rofi-config)
-        rofi_config="$2"
-        shift # past argument
-        shift # past value
+            rofi_config="$2"
+            shift # past argument
+            shift # past value
+            ;;
+        -u|--update-emotes)
+            update_emotes=true
+            shift
+            ;;
+        -h|--help)
+            show_help
+            ;;
     esac
 done
 
@@ -26,7 +44,7 @@ function rm_tr_quotes () {
     echo "$1" | sed -e 's/^"//' -e 's/"$//'
 }
 
-if [ ! -d $emote_col ]; then
+if [ ! -d $emote_col ] || [ "$update_emotes" = true ]; then
     echo -n "Enter your discord authentication token: "
     read -s token
     

@@ -16,3 +16,15 @@ This script depends on a few other utilities:
 - `xdotool` - Sending input to windows
 - `xclip` - Clipboard management
 - `dragon` - As of now, since gifs aren't getting copied to the clipboard, dragon is used as a temporary solution to drag and drop the gif
+
+## Usage
+
+```
+Usage: emote.sh [OPTION...]
+A script to open a discord emote menu
+
+Options:
+-c, --rofi-config       Specify a custom config file for the rofi  menu
+-u, --update-emotes     Download new emotes
+-h, --help              Display this help menu
+```
