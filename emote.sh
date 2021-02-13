@@ -1,19 +1,23 @@
 #!/bin/bash
 
+set -e
+
 base_url="https://discord.com/api/v8"
 dir=$(dirname "$0")
 data_file=$dir/emote_data
 emote_col=$dir/emotes
 thumbnail_path=$emote_col/gif_thumbnails
 window_class="Discord"
+colon=false
 
 function show_help () {
     echo "Usage: $(basename "$0") [OPTION...]"
     echo -e "A script to open a discord emote menu\n"
     echo "Options:"
-    echo -e "-c, --rofi-config\tSpecify a custom config file for the rofi menu"
-    echo -e "-u, --update-emotes\tDownload new emotes"
     echo -e "-w, --window-class\tWindow class to send the emote to. Default value is \"Discord\""
+    echo -e "-r, --rofi-config\tSpecify a custom config file for the rofi menu"
+    echo -e "-u, --update-emotes\tDownload new emotes"
+    echo -e "-c, --colon\t\tDisplay colon at the beginning and end of emote name."
     echo -e "-h, --help\t\tDisplay this help menu\n"
     exit 0
 }
@@ -36,7 +40,7 @@ function invalid_option () {
 while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in
-        -c|--rofi-config)
+        -r|--rofi-config)
             [ -z "$2" ] && invalid_option
             rofi_config=$(rm_tr_quotes "$2")
             shift
@@ -50,6 +54,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -u|--update-emotes)
             update_emotes=true
+            shift
+            ;;
+        -c|--colon)
+            colon=true
             shift
             ;;
         -h|--help)
@@ -73,9 +81,9 @@ if [ ! -d $emote_col ] || [ "$update_emotes" = true ]; then
     echo -e "\nStarting to download emotes..."
 
     mkdir -p $thumbnail_path
-    if [ -f $data_file ]; then
-        truncate -s 0 $data_file
-    fi
+    # if [ -f $data_file ]; then
+    #     truncate -s 0 $data_file
+    # fi
 
     servers=$(fetch_data "/users/@me/guilds" | jq '.[] | .id')
 
@@ -114,19 +122,15 @@ fi
 selected=$(sort -k 3 -r $data_file | \
     while read entry; do
         origname=$(echo $entry | awk '{print $1}')
-        name=":${origname%%.*}:"
+        [ "$colon" = true ] && name=":${origname%%.*}:" || name="$origname"
         img=$(echo $entry | awk '{print $2}')
         [ ${img##*.} = "gif" ] && img=emotes/gif_thumbnails/$origname.png
-        if [ $PWD != $HOME ] && [ $PWD != $dir ]; then
-            img=$(realpath $dir/$img)
-        else 
-            img=$dir/$img
-        fi
+        img=$(realpath $dir/$img)
         echo -e "$name\0icon\x1f$img"
     done | ${rofi_cmd[@]})
 
 if [ "$selected" ]; then
-    selected=$(echo $selected | cut -d ":" -f 2)
+    [ "$colon" = true ] && selected=$(echo $selected | cut -d ":" -f 2)
     real_fn=$dir/$(grep "^$selected " $data_file | awk '{print $2}')
     mime_type=$(file -b --mime-type "$real_fn")
     # increments usage counter
