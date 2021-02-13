@@ -126,7 +126,7 @@ selected=$(sort -k 3 -r $data_file | \
         img=$(echo $entry | awk '{print $2}')
         [ ${img##*.} = "gif" ] && img=emotes/gif_thumbnails/$origname.png
         img=$(realpath $dir/$img)
-        echo -e "$name\0icon\x1f$img"
+        echo -e " $name\0icon\x1f$img"
     done | ${rofi_cmd[@]})
 
 if [ "$selected" ]; then
