@@ -24,7 +24,8 @@ Usage: emote.sh [OPTION...]
 A script to open a discord emote menu
 
 Options:
--c, --rofi-config       Specify a custom config file for the rofi  menu
+-c, --rofi-config       Specify a custom config file for the rofi menu
 -u, --update-emotes     Download new emotes
+-w, --window-class      Window class to send the emote to. Default value is "Discord".
 -h, --help              Display this help menu
 ```

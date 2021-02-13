@@ -5,6 +5,7 @@ dir=$(dirname "$0")
 data_file=$dir/emote_data
 emote_col=$dir/emotes
 thumbnail_path=$emote_col/gif_thumbnails
+window_class="Discord"
 
 function show_help () {
     echo "Usage: $(basename "$0") [OPTION...]"
@@ -12,28 +13,10 @@ function show_help () {
     echo "Options:"
     echo -e "-c, --rofi-config\tSpecify a custom config file for the rofi menu"
     echo -e "-u, --update-emotes\tDownload new emotes"
+    echo -e "-w, --window-class\tWindow class to send the emote to. Default value is \"Discord\""
     echo -e "-h, --help\t\tDisplay this help menu\n"
     exit 0
 }
-
-while [[ $# -gt 0 ]]; do
-    key="$1"
-    case $key in
-        -c|--rofi-config)
-            rofi_config="$2"
-            shift # past argument
-            shift # past value
-            ;;
-        -u|--update-emotes)
-            update_emotes=true
-            shift
-            ;;
-        -h|--help)
-            show_help
-            ;;
-    esac
-done
-
 
 function fetch_data () {
     curl --silent -H "Content-Type: application/json" -H "Authorization: $token" \
@@ -43,6 +26,40 @@ function fetch_data () {
 function rm_tr_quotes () {
     echo "$1" | sed -e 's/^"//' -e 's/"$//'
 }
+
+function invalid_option () {
+    echo "Incorrect usage."
+    exit 1
+}
+
+
+while [[ $# -gt 0 ]]; do
+    key="$1"
+    case $key in
+        -c|--rofi-config)
+            [ -z "$2" ] && invalid_option
+            rofi_config="$2"
+            shift
+            shift
+            ;;
+        -w|--window-class)
+            [ -z "$2" ] && invalid_option
+            window_class="$2"
+            shift
+            shift
+            ;;
+        -u|--update-emotes)
+            update_emotes=true
+            shift
+            ;;
+        -h|--help)
+            show_help
+            ;;
+        *) 
+            invalid_option
+        ;;
+    esac
+done
 
 if [ ! -d $emote_col ] || [ "$update_emotes" = true ]; then
     echo -n "Enter your discord authentication token: "
@@ -117,7 +134,7 @@ if [ "$selected" ]; then
 
     if [[ "$mime_type" == image/png ]]; then
         xclip -se c -t image/png -i $real_fn 
-        WID=$(xdotool search --class --onlyvisible --maxdepth 1 --limit 1 "Discord")
+        WID=$(xdotool search --class --onlyvisible --maxdepth 1 --limit 1 "$window_class")
         if [ "$WID" ]; then
             xdotool windowactivate $WID
             xdotool key ctrl+v
