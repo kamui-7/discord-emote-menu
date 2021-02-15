@@ -24,9 +24,11 @@ Usage: emote.sh [OPTION...]
 A script to open a discord emote menu
 
 Options:
--w, --window-class      Window class to send the emote to. Default value is "Discord"
--r, --rofi-config       Specify a custom config file for the rofi menu
--u, --update-emotes     Download new emotes
--c, --colon             Display colon at the beginning and end of emote name.
--h, --help              Display this help menu
+-w, --window-class [class]         Window class to send the emote to. Set to "Discord" by default
+-r, --rofi-config  [file]          Specify a custom config file for the rofi menu
+-a, --add-emote    [image] [name?] Load emote into collection
+-d, --delete-emote [name]          Remove emote from collection
+-u, --update-emotes                Download new emotes
+-c, --colon                        Display colon at the beginning and end of emote name.
+-h, --help                         Display this help menu
 ```

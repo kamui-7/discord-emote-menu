@@ -14,32 +14,83 @@ function show_help () {
         echo "Usage: $(basename "$0") [OPTION...]"
         echo -e "A script to open a discord emote menu\n"
         echo "Options:"
-        echo -e "-w, --window-class\tWindow class to send the emote to. Default value is \"Discord\""
-        echo -e "-r, --rofi-config\tSpecify a custom config file for the rofi menu"
-        echo -e "-u, --update-emotes\tDownload new emotes"
-        echo -e "-c, --colon\t\tDisplay colon at the beginning and end of emote name."
-        echo -e "-h, --help\t\tDisplay this help menu\n"
+        echo -e "-w, --window-class [class]         Window class to send the emote to. Set to \"Discord\" by default"
+        echo -e "-r, --rofi-config  [file]          Specify a custom config file for the rofi menu"
+        echo -e "-a, --add-emote    [image] [name?] Load emote into collection"
+        echo -e "-d, --delete-emote [name]          Remove emote from collection"
+
+        echo -e "-u, --update-emotes                Download new emotes"
+        echo -e "-c, --colon                        Display colon at the beginning and end of emote name."
+        echo -e "-h, --help                         Display this help menu\n"
         exit 0
 }
+
+function die () {
+        echo -e $1
+        exit 1
+}
+
+function resize () {
+        convert -resize "48x48" $1 $1
+}
+
 
 function fetch_data () {
         curl --silent -H "Content-Type: application/json" -H "Authorization: $token" \
                 "$base_url$1"
-        }
+}
 
 function rm_tr_quotes () {
         echo "$1" | sed -e 's/^"//' -e 's/"$//'
 }
 
 function invalid_option () {
-        echo "Incorrect usage."
-        exit 1
+        die "Incorrect usage."
 }
 
+function add_emote () {
+        if [ ! -f $1 ]; then
+                die "Image does not exist."
+        fi
+
+        basename=$(basename $1)
+        emote_name=${basename%%.*}
+
+        if [ -f $emote_col/$basename ]; then
+                die "Emote already exists."
+        fi
+
+        if [ ! -z $2 ]; then
+                emote_name=$2
+        fi
+
+        cp $1 $emote_col
+        resize $emote_col/$basename
+        echo "$emote_name $emote_col/$basename 0" >> $data_file
+        exit 0
+}
+
+function remove_emote () {
+        image_path=$(grep $1 $data_file | awk '{ print $2 }')
+        if [ ! $image_path ]; then
+                die "Emote does not exist."
+        fi
+        rm $image_path
+        sed -i "/^$1/d" $data_file
+        exit 0
+}
 
 while [[ $# -gt 0 ]]; do
         key="$1"
         case $key in
+                -a|--add-emote)
+                        [ -z "$2" ] && invalid_option
+                        add_emote  $2 $3
+                        ;;
+                -d|--remove-emote)
+                        [ -z "$2" ] && invalid_option
+                        remove_emote $2
+                        ;;
                 -r|--rofi-config)
                         [ -z "$2" ] && invalid_option
                         rofi_config=$(rm_tr_quotes "$2")
@@ -74,16 +125,12 @@ if [ ! -d $emote_col ] || [ "$update_emotes" = true ]; then
         read -s token
 
         if [[ $(fetch_data "/users/@me" | jq '.message') = '"401: Unauthorized"' ]]; then
-                echo -e "\nIncorrect token"
-                exit 1
+                die "\nIncorrect token"
         fi
 
         echo -e "\nStarting to download emotes..."
 
         mkdir -p $thumbnail_path
-        # if [ -f $data_file ]; then
-        #     truncate -s 0 $data_file
-        # fi
 
         servers=$(fetch_data "/users/@me/guilds" | jq '.[] | .id')
 
@@ -115,9 +162,7 @@ fi;
 
 rofi_cmd=(rofi -dmenu -i -p "Emote:" -sort -show-icons)
 
-if [ ! -z ${rofi_config+x} ]; then
-        rofi_cmd+=(-config "$rofi_config")
-fi
+[ ! -z ${rofi_config+x} ] && rofi_cmd+=(-config "$rofi_config")
 
 selected=$(sort -k 3 -r $data_file | \
         while read entry; do
@@ -134,28 +179,23 @@ if [ "$selected" ]; then
         real_fn=$dir/$(grep "^$selected " $data_file | awk '{print $2}')
         if [ -f "$real_fn" ]; then
                 mime_type=$(file -b --mime-type "$real_fn")
-                echo $mime_type
-                echo $real_fn
-                echo $selected
                 # increments usage counter
                 sed -E -i 's/(^'"$selected"') (.*) ([0-9]*)/echo "\1 \2 $((\3+1))"/ge' $data_file
 
                 if [[ "$mime_type" == image/png ]]; then
                         xclip -se c -t image/png -i $real_fn 
-                        WID=$(xdotool search --class --onlyvisible --maxdepth 1 --limit 1 "$window_class")
+                        WID=$(xdotool search --class --onlyvisible --limit 1 "$window_class")
                         if [ "$WID" ]; then
                                 xdotool windowactivate $WID
                                 xdotool key ctrl+v
                                 xdotool key KP_Enter
                         else
-                                echo "You do not have discord open"
-                                exit 1
+                                die "You do not have discord open"
                         fi
                 else
                         dragon $real_fn --and-exit # temporary fix since gifs aren't getting copied to the clipboard
                 fi
         else
-                echo "Invalid emote name"
-                exit 1
+                die "Invalid emote name"
         fi
 fi
