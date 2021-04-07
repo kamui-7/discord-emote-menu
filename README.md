@@ -10,12 +10,12 @@ The first time you run this script, it will download all the emotes in advance. 
 
 This script depends on a few other utilities:
 
-- `jq` - Parses json response from Discord API
-- `imagemagick` - For resizing emotes to regular size
-- `rofi` - For displaying the emote menu
-- `xdotool` - Sending input to windows
-- `xclip` - Clipboard management
-- `dragon` - As of now, since gifs aren't getting copied to the clipboard, dragon is used as a temporary solution to drag and drop the gif
+-   `jq` - Parses json response from Discord API
+-   `imagemagick` - For resizing emotes to regular size
+-   `rofi` - For displaying the emote menu
+-   `xdotool` - Sending input to windows
+-   `xclip` - Clipboard management
+-   `dragon` - Since, Discord does not seem to [support copy pasting files other than images], dragon is used as a temporary solution to drag and drop the gif
 
 ## Usage
 
@@ -28,7 +28,8 @@ Options:
 -r, --rofi-config  [file]          Specify a custom config file for the rofi menu
 -a, --add-emote    [image] [name?] Load emote into collection
 -d, --delete-emote [name]          Remove emote from collection
--u, --update-emotes                Download new emotes
+-f, --fetch-emotes [servers]       Download emotes. Optionally specify a server ID list seperated by a space and enclosed in quotes. Example: "234113424342 092432714749"
 -c, --colon                        Display colon at the beginning and end of emote name.
 -h, --help                         Display this help menu
+
 ```
